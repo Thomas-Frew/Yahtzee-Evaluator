@@ -3,23 +3,35 @@ const tableSelector = "#scorecard"
 const messageSelector = "#messageBox"
 const totalSelector = "#total-score"
 
+// Do an initial evaluation
+let lastEvaluations = [0, 0]
+let playerNames = ["Player 1", "Player 2"]
+
 /**
  * Update the players' scorecards
  */
 function getScorecards(table) {
     const tableRows = table.querySelectorAll('tr')
-    let scorecards = { "Player 1": [], "Player 2": [] }
+    let scorecards = [[], []]
+
+    nameRow = tableRows[0]
+    playerNames = [nameRow.cells[1].textContent.trim(), nameRow.cells[2].textContent.trim()]
 
     tableRows.forEach((tableRow, _) => {
         const cells = tableRow.querySelectorAll('th, td')
         if (cells.length >= 3) {
-            scorecards["Player 1"].push(tableRow.cells[1].textContent.trim())
-            scorecards["Player 2"].push(tableRow.cells[2].textContent.trim())
+            scorecards[0].push(tableRow.cells[1].textContent.trim())
+            scorecards[1].push(tableRow.cells[2].textContent.trim())
         }
     })
 
     console.log("Got scorecards ", scorecards)
     return scorecards
+}
+
+function sendEvaluations(data, names) {
+    chrome.runtime.sendMessage({ type: "evaluations", data: data, names: names });
+    console.log("Sending evaluations: ", lastEvaluations)
 }
 
 /**
@@ -35,13 +47,19 @@ function requestEvaluation(scorecards) {
     })
         .then(response => response.json())
         .then(data => {
-            console.log('Data from server:', data);
+            lastEvaluations = data.evaluations
+            sendEvaluations(lastEvaluations, playerNames)
         })
         .catch(error => {
             console.error('Error:', error);
         });
 }
 
+function evaluate() {
+    let tableNode = document.querySelector(tableSelector)
+    scorecards = getScorecards(tableNode)
+    requestEvaluation(scorecards)
+}
 
 /**
  * A callback that triggers an evaluation.
@@ -52,9 +70,7 @@ function evaluationCallback(mutationsList) {
         const paragraphs = messageNode.querySelectorAll('p')
         paragraphs.forEach(pElement => {
             if (pElement.textContent == "") {
-                let tableNode = document.querySelector(tableSelector)
-                scorecards = getScorecards(tableNode)
-                requestEvaluation(scorecards)
+                evaluate()
             }
         })
     }
@@ -85,4 +101,15 @@ function observeTarget(selector, callback) {
     }
 }
 
+// Hook onto the scoreboard for regular requests
 observeTarget(messageSelector, evaluationCallback)
+
+// Do a evaluation to begin
+evaluate()
+
+// Listen out for evaluation requests
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type == "evaluationRequest") {
+        sendEvaluations(lastEvaluations, playerNames)
+    }
+});

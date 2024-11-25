@@ -35,14 +35,13 @@ def evaluate_position():
     data = request.get_json()
     print('Received data:', data)
     
-    predicted_scores = {}
-    for key, value in data.items():
+    predicted_scores = []
+    for value in data:
         value = process_data(value)
-        prediction = int(model.predict(value)[0][0])
-        predicted_scores[key] = prediction
-        print(prediction)
-
-    return jsonify({"predictions": predicted_scores})
+        evaluation = int(model.predict(value)[0][0])
+        predicted_scores.append(evaluation)
+        
+    return jsonify({"evaluations": predicted_scores})
 
 if __name__ == '__main__':
     CORS(app)
