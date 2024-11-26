@@ -3,8 +3,8 @@ const thresholds = [5, 10, 20, 50, 100]
 /**
  * Take the ratio between two Yahtzee scores.
  */
-function getScoreRatio(scores) {
-    return scores[0] / (scores[0] + scores[1])
+function getScoreRatio(diff) {
+    return 0.5 + diff / 20
 }
 
 function getPositionPhrase(scores, names) {
@@ -55,16 +55,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         evaluations = message.data
         names = message.names
 
-        ratio = getScoreRatio(evaluations)
+        let diff = ((evaluations[0] - evaluations[1]) / 10).toFixed(2);
+        let ratio = getScoreRatio(diff)
         transformLevels(ratio)
 
         document.getElementById("white-level-text").innerText = evaluations[0]
         document.getElementById("black-level-text").innerText = evaluations[1]
 
+        document.getElementById("diff").innerText = diff
         document.getElementById("header").innerText = getPositionPhrase(evaluations, names)
     }
 });
 
 // Initialise popup elements
-document.getElementById('header').innerText = "Start a Yahtzee game to begin."
 document.getElementById('floatButton').addEventListener('click', createWindowedPopup)

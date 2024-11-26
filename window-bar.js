@@ -1,4 +1,4 @@
-const barHeight = 600
+const barHeight = 500
 
 function transformLevels(ratio) {
     whiteWidth = ratio * barHeight
